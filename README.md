@@ -1,6 +1,6 @@
 CloudLaunch – AltSchool Cloud Engineering Project
 
-This project, called CloudLaunch, was completed as part of my AltSchool Africa Cloud Engineering assignment. It demonstrates my understanding of core AWS services such as S3, IAM, CloudFront, and VPC networking. The work is divided into two main parts:
+This project, called CloudLaunch, was completed as part of my AltSchool Africa Cloud Engineering Third Semester Assignment. It demonstrates my understanding of core AWS services such as S3, IAM, CloudFront, and VPC networking. The work is divided into two main parts:
 
 Hosting a static website using Amazon S3 and controlling access with IAM.
 

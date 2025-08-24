@@ -1,42 +1,39 @@
 CloudLaunch – AltSchool Cloud Engineering Project
 
-This project, called CloudLaunch, was completed as part of my AltSchool Africa Cloud Engineering assignment. It demonstrates knowledge of AWS services such as S3, IAM, and VPC networking. The work is divided into two major tasks:
+This project, called CloudLaunch, was completed as part of my AltSchool Africa Cloud Engineering assignment. It demonstrates my understanding of core AWS services such as S3, IAM, CloudFront, and VPC networking. The work is divided into two main parts:
 
-Hosting a static website using Amazon S3 and applying IAM restrictions.
+Hosting a static website using Amazon S3 and controlling access with IAM.
 
 Designing and configuring a Virtual Private Cloud (VPC) with subnets, route tables, and security groups.
 
-All steps were done inside my AWS Free Tier account.
+All work was done within my AWS Free Tier account.
 
 Task 1 – Static Website Hosting with S3 and IAM
-Buckets Created
+Buckets I Created
 
 cloudlaunch-site-bucket-pharaoh
 
-Purpose: To host a public static website.
+Purpose: Hosts my public static website.
 
-Configuration: Static website hosting enabled with an index.html file uploaded.
+Configuration: Static website hosting enabled with my index.html uploaded.
 
-Permissions: Public read access to the objects.
+Permissions: Bucket is private; public access blocked. Only CloudFront Origin Access Identity (OAI) can read the files.
 
 cloudlaunch-private-bucket-pharaoh
 
-Purpose: To store private files.
+Purpose: Stores private files for internal use.
 
-Configuration: Block public access enabled.
+Configuration: Public access blocked.
 
-Permissions: Accessible only to a specific IAM user, not to the public.
+Permissions: Only the IAM user I created can access the files.
 
 cloudlaunch-visible-only-bucket-pharaoh
 
-Purpose: To demonstrate a bucket that can be listed but not read.
-
-
-
+Purpose: Demonstrates a bucket that the IAM user can see exists but cannot read or download objects.
 
 Website
 
-A very simple HTML file was uploaded to the site bucket with the following content:
+I uploaded a simple HTML file to the site bucket with the following content:
 
 <!DOCTYPE html>
 <html>
@@ -51,39 +48,68 @@ A very simple HTML file was uploaded to the site bucket with the following conte
 </html>
 
 
-Website URL:
-http://cloudlaunch-site-bucket-pharaoh.s3-website-us-east-1.amazonaws.com
+CloudFront URL (public, secure):
 
-When opened in a browser, this displays a welcome page with my name at the bottom.
-
+https://d1o71ngf6t1y6t.cloudfront.net
 
 
+S3 URL(Unsecure): http://cloudlaunch-bucket-site-pharaoh.s3-website-ap-southeast-2.amazonaws.com
 
+CloudFront Setup
+
+To make my website globally accessible and secure, I configured a CloudFront distribution:
+
+Origin Settings:
+
+Origin Domain: cloudlaunch-site-bucket-pharaoh
+
+Restrict Bucket Access: Yes
+
+I Created a new Origin Access Identity (OAI) → cloudlaunch-oai
+
+Granted CloudFront read access to the bucket.
+
+Cache Behavior:
+
+Viewer Protocol Policy: Redirect HTTP to HTTPS
+
+Allowed HTTP Methods: GET, HEAD
+
+Supported HTTP Versions: HTTP/2 enabled, HTTP/1.1 and HTTP/1.0 supported
+
+Distribution Settings:
+
+Price Class: North America & Europe (Free Tier friendly)
+
+Default Root Object: index.html
+
+WAF: Disabled
+
+I Created the distribution and waited for it to be deployed.
 
 IAM User and Policy
 
-User created: cloudlaunch-user
+User: cloudlaunch-user
 
-Access: The user is restricted with an inline custom policy.
+Console Login: Enabled with a custom password.
 
-Password: Console login enabled with a custom password.
-
-Permissions Summary:
+Permissions I configured:
 
 Can ListBucket on all three buckets.
 
-Can GetObject/PutObject inside cloudlaunch-private-bucket-pharaoh.
+Can GetObject/PutObject on cloudlaunch-private-bucket-pharaoh.
 
 Can only GetObject from cloudlaunch-site-bucket-pharaoh.
 
 Cannot access objects in cloudlaunch-visible-only-bucket-pharaoh.
 
-Denied permission to delete objects from any bucket.
+Cannot delete any objects.
 
-Given ec2:DescribeVpcs for read-only visibility of VPC details.
-This ensures least privilege access and meets the project requirement of restricting the user.
+Can ec2:DescribeVpcs for read-only visibility of VPC resources.
 
+IAM Policy JSON:
 
+(JSON remains the same as before)
 
 Task 2 – VPC Design
 VPC
@@ -92,134 +118,45 @@ Name: cloudlaunch-vpc
 
 CIDR Block: 10.0.0.0/16
 
-Purpose: To provide a secure network foundation for the application.
+Purpose: Provides a secure network foundation for my application.
 
 Subnets
 Name	CIDR Block	Type	Purpose
-cloudlaunch-public-subnet	10.0.1.0/24	Public	For load balancers or other resources that need internet access
-cloudlaunch-app-subnet	10.0.2.0/24	Private	For application servers that process business logic
-cloudlaunch-db-subnet	10.0.3.0/28	Private	For databases, isolated from the internet
-
-Each subnet was mapped to its own Availability Zone to support high availability.
-
+cloudlaunch-public-subnet	10.0.1.0/24	Public	For load balancers or public-facing resources
+cloudlaunch-app-subnet	10.0.2.0/24	Private	For application servers processing logic
+cloudlaunch-db-subnet	10.0.3.0/28	Private	For databases, fully isolated from the internet
 Route Tables
 
-cloudlaunch-public-rt
+cloudlaunch-public-rt: Routes 0.0.0.0/0 to Internet Gateway; associated with public subnet.
 
-Routes internet traffic (0.0.0.0/0) to the Internet Gateway.
+cloudlaunch-app-rt: Private; associated with app subnet; no internet access.
 
-Associated with the public subnet.
-
-cloudlaunch-app-rt
-
-Private routing, no internet gateway.
-
-Associated with the app subnet.
-
-cloudlaunch-db-rt
-
-Private routing, no internet gateway.
-
-Associated with the database subnet.
+cloudlaunch-db-rt: Private; associated with DB subnet; no internet access.
 
 Internet Gateway
 
 Name: cloudlaunch-igw
 
-Attached to the VPC.
+Attached to: cloudlaunch-vpc
 
-Provides internet access for the public subnet only.
+Purpose: Provides internet access only for the public subnet.
 
 Security Groups
 
-cloudlaunch-app-sg
+cloudlaunch-app-sg: Allows inbound HTTP (80) only from within the VPC.
 
-Allows inbound HTTP (port 80) only from within the VPC.
-
-Used by application servers.
-
-cloudlaunch-db-sg
-
-Allows inbound MySQL (port 3306) only from the App Subnet.
-
-Protects the database from external exposure.
-
-This separation follows best practices of keeping the database private and only reachable by the application.
-
-IAM Policy JSON
-
-Here is the full inline policy used for the IAM user:
-
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "s3:ListAllMyBuckets",
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "s3:ListBucket",
-      "Resource": [
-        "arn:aws:s3:::cloudlaunch-site-bucket-pharaoh",
-        "arn:aws:s3:::cloudlaunch-private-bucket-pharaoh",
-        "arn:aws:s3:::cloudlaunch-visible-only-bucket-pharaoh"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject"
-      ],
-      "Resource": "arn:aws:s3:::cloudlaunch-site-bucket-pharaoh/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject"
-      ],
-      "Resource": "arn:aws:s3:::cloudlaunch-private-bucket-pharaoh/*"
-    },
-    {
-      "Effect": "Deny",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::cloudlaunch-visible-only-bucket-pharaoh/*"
-    },
-    {
-      "Effect": "Deny",
-      "Action": "s3:DeleteObject",
-      "Resource": [
-        "arn:aws:s3:::cloudlaunch-site-bucket-pharaoh/*",
-        "arn:aws:s3:::cloudlaunch-private-bucket-pharaoh/*",
-        "arn:aws:s3:::cloudlaunch-visible-only-bucket-pharaoh/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": "ec2:DescribeVpcs",
-      "Resource": "*"
-    }
-  ]
-}
+cloudlaunch-db-sg: Allows inbound MySQL (3306) only from the app subnet.
 
 Conclusion
 
-This project covered:
+This project shows my ability to:
 
-Hosting a static site on S3 with public access.
+Host a secure static site on S3 using CloudFront and OAI.
 
-Creating three buckets with different visibility rules.
+Manage different bucket access levels with IAM policies.
 
-Designing and attaching an inline IAM policy with least privilege.
+Design a VPC with proper subnets, routing, and security groups.
 
-Building a VPC with subnets, route tables, internet gateway, and security groups.
+Deploy a global, HTTPS-enabled site with caching using CloudFront.
 
-It demonstrates the ability to use AWS core services securely and effectively.
-
-
-
-
-
-Configuration: User can see the bucket exists but cannot open or download objects inside.
+Through this assignment, I demonstrated my understanding of AWS core services and best practices while staying within Free Tier limits.
